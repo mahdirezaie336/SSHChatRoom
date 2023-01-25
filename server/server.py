@@ -2,15 +2,31 @@ import threading
 import socket
 import json
 import paramiko
-from common import MESSAGE_LENGTH, WRONG_CREDENTIALS, LOGIN_SUCCESSFUL
+from paramiko.common import AUTH_FAILED, AUTH_SUCCESSFUL
+from common import MESSAGE_LENGTH
+
+paramiko.ServerInterface
 
 # A server to handle multiple clients in separate threads
-class Server:
+class Server(paramiko.ServerInterface):
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = {}
+
+    def check_auth_password(self, username: str, password: str) -> int:
+        users: dict = json.load(open("users.json", "r"))
+                
+        try:
+            user_password = users[username]
+            if password != user_password:
+                raise KeyError
+        except KeyError:
+            return paramiko.ServerInterface
+
+        
+        return super().check_auth_password(username, password)
 
     def handle_client(self, client_socket: socket.socket, address: socket._RetAddress) -> None:
         try:
@@ -30,7 +46,9 @@ class Server:
 
                 client_socket.send(LOGIN_SUCCESSFUL.encode())
                 
-                transport = paramiko.Transport(client_socket).start_server()
+                transport = paramiko.Transport(client_socket)
+                transport.add_server_key(paramiko.RSAKey(filename="id_rsa"))
+                transport.start_server(self)
 
         except ConnectionResetError:
             print("Client disconnected")
