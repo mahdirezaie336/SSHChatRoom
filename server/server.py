@@ -31,18 +31,16 @@ class Server(paramiko.ServerInterface):
     def check_channel_request(self, kind: str, chanid: int) -> int:
         return OPEN_SUCCEEDED
 
-    def handle_client(self, client: socket.socket, address: socket._RetAddress) -> None:
+    def handle_client(self, client_channel: paramiko.Channel) -> None:
         try:
             while True:
-                client_socket.send(LOGIN_SUCCESSFUL.encode())
+                data = client_channel.recv(MESSAGE_LENGTH)
+                print(data.decode())
+                client_channel.sendall("ACK".encode())
                 
-                transport = paramiko.Transport(client_socket)
-                transport.add_server_key(paramiko.RSAKey(filename="id_rsa"))
-                transport.start_server(self)
-
         except ConnectionResetError:
             print("Client disconnected")
-            client_socket.close()
+            client_channel.close()
             self.connections.remove(threading.current_thread())
 
     def run(self):
