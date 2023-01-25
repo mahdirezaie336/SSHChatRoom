@@ -16,19 +16,9 @@ class Server(paramiko.ServerInterface):
         self.connections = {}
 
     def check_auth_password(self, username: str, password: str) -> int:
-        users: dict = json.load(open("users.json", "r"))
-                
-        try:
-            user_password = users[username]
-            if password != user_password:
-                raise KeyError
-        except KeyError:
-            return paramiko.ServerInterface
-
-        
         return super().check_auth_password(username, password)
 
-    def handle_client(self, client_socket: socket.socket, address: socket._RetAddress) -> None:
+    def handle_client(self, client: socket.socket, address: socket._RetAddress) -> None:
         try:
             while True:
                 username = client_socket.recv(MESSAGE_LENGTH).decode()
