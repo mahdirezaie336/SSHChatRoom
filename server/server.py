@@ -17,8 +17,8 @@ class Server(paramiko.ServerInterface):
         self.online_users = {}
 
     def check_auth_password(self, username: str, password: str) -> int:
-        users: dict = json.load(open("user.json", "r"))
-        
+        print(username, password)
+        users: dict = json.load(open("users.json", "r"))
         try:
             user_password = users[username]
             if password != user_password:
@@ -49,17 +49,19 @@ class Server(paramiko.ServerInterface):
 
         # Listen for connections
         print("Listening for connections ...")
-        transport = paramiko.Transport(self.sock)
-        transport.add_server_key(paramiko.RSAKey(filename="id_rsa"))
-        transport.start_server(server=self)
+        self.sock.listen()
 
         try:
             while True:
+                client_socket, addr = self.sock.accept()
+                transport = paramiko.Transport(client_socket)
+                transport.add_server_key(paramiko.RSAKey(filename="id_rsa"))
+                transport.start_server(server=self)
                 channel = transport.accept()
                 print("Received connection from ", channel.chanid)
                 client_handler = threading.Thread(
                     target=self.handle_client,
-                    args=(channel)
+                    args=[channel]
                 )
                 client_handler.start()
                 self.connections.append(client_handler)
@@ -69,7 +71,7 @@ class Server(paramiko.ServerInterface):
 
 
 if __name__ == "__main__":
-    config = json.load(open("config.json", "r"))
+    config = json.load(open(file="config.json", mode="r", encoding="UTF-8"))
     host, port = config["listen_address"], config["listen_port"]
     server = Server(host, port)
     server.run()
