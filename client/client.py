@@ -5,7 +5,7 @@ import paramiko
 from common import MESSAGE_LENGTH
 
 
-class Client(paramiko.SSHClient):
+class Client:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
@@ -39,6 +39,7 @@ class Client(paramiko.SSHClient):
 
     def close(self):
         self.transport.close()
+        self.sock.close()
 
 
 if __name__ == "__main__":
