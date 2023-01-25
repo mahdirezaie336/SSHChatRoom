@@ -13,8 +13,9 @@ def synchronized(func):
 class JsonDatabase:
     def __init__(self, database_name):
         self.database_name = database_name
-        self.db = json.load(open(database_name))
         self.lock = Lock()
+        with open(database_name, "r") as f:
+            self.db = json.load(f)
 
     def authenticate(self, username, password):
         # Check if user exists
@@ -30,7 +31,7 @@ class JsonDatabase:
 
         # Insert user into database
         self.db[username] = hashed_password
-        self.dump()
+        self.dump(self)
         return True
 
     @synchronized

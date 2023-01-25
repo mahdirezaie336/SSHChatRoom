@@ -2,7 +2,7 @@ import threading
 import socket
 import json
 import paramiko
-from mydatabase.database import Database
+from mydatabase.jsondatabase import JsonDatabase
 
 
 # A server to handle multiple clients in separate threads
@@ -11,7 +11,7 @@ class Server:
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.db = Database('./mydatabase/users.sqlite')
+        self.db = JsonDatabase('./mydatabase/users.json')
         self.connections = []
 
     def authenticate(self, username, password):
