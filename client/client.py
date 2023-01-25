@@ -1,5 +1,8 @@
 import sys
 import socket
+import getpass
+import paramiko
+from common import MESSAGE_LENGTH, WRONG_CREDENTIALS, LOGIN_SUCCESSFUL
 
 
 class Client:
@@ -15,7 +18,7 @@ class Client:
         self.sock.sendall(data)
 
     def receive(self):
-        data = self.sock.recv(1024)
+        data = self.sock.recv(MESSAGE_LENGTH)
         return data
 
     def close(self):
@@ -26,6 +29,19 @@ if __name__ == "__main__":
     address, port = sys.argv[1], int(sys.argv[2])
     client = Client(address, port)
     client.connect()
+    while True:
+        username = input("Username: ")
+        password = getpass.getpass("Password: ")
+
+        client.send(username)
+        client.send(password)
+
+        server_feedback = client.receive().decode()
+        
+        if server_feedback == WRONG_CREDENTIALS:
+            print("Wrong credentials, try again.")
+        
+        break
 
     # Get messages from user
     while True:

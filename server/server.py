@@ -2,7 +2,7 @@ import threading
 import socket
 import json
 import paramiko
-
+from common import MESSAGE_LENGTH, WRONG_CREDENTIALS, LOGIN_SUCCESSFUL
 
 # A server to handle multiple clients in separate threads
 class Server:
@@ -10,14 +10,28 @@ class Server:
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connections = []
+        self.connections = {}
 
-    def handle_client(self, client_socket, address):
+    def handle_client(self, client_socket: socket.socket, address: socket._RetAddress) -> None:
         try:
             while True:
-                data = client_socket.recv(1024)
-                print("Received data from ", address, ":", data.decode())
-                client_socket.send("ACK".encode())
+                username = client_socket.recv(MESSAGE_LENGTH).decode()
+                password = client_socket.recv(MESSAGE_LENGTH).decode()
+                users: dict = json.load(open("users.json", "r"))
+                
+                try:
+                    user_password = users[username]
+                    if password != user_password:
+                        raise KeyError
+                except KeyError:
+                    client_socket.send(WRONG_CREDENTIALS.encode())
+                    client_socket.close()
+                    return
+
+                client_socket.send(LOGIN_SUCCESSFUL.encode())
+                
+                transport = paramiko.Transport(client_socket).start_server()
+
         except ConnectionResetError:
             print("Client disconnected")
             client_socket.close()
