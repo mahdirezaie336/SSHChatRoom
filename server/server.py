@@ -2,7 +2,7 @@ import threading
 import socket
 import json
 import paramiko
-from paramiko.common import AUTH_FAILED, AUTH_SUCCESSFUL
+from paramiko.common import AUTH_FAILED, AUTH_SUCCESSFUL, OPEN_SUCCEEDED
 from common import MESSAGE_LENGTH
 
 paramiko.ServerInterface
@@ -12,8 +12,9 @@ class Server(paramiko.ServerInterface):
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connections = {}
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connections = []
+        self.online_users = {}
 
     def check_auth_password(self, username: str, password: str) -> int:
         users: dict = json.load(open("user.json", "r"))
@@ -27,22 +28,12 @@ class Server(paramiko.ServerInterface):
 
         return AUTH_SUCCESSFUL
 
+    def check_channel_request(self, kind: str, chanid: int) -> int:
+        return OPEN_SUCCEEDED
+
     def handle_client(self, client: socket.socket, address: socket._RetAddress) -> None:
         try:
             while True:
-                username = client_socket.recv(MESSAGE_LENGTH).decode()
-                password = client_socket.recv(MESSAGE_LENGTH).decode()
-                users: dict = json.load(open("users.json", "r"))
-                
-                try:
-                    user_password = users[username]
-                    if password != user_password:
-                        raise KeyError
-                except KeyError:
-                    client_socket.send(WRONG_CREDENTIALS.encode())
-                    client_socket.close()
-                    return
-
                 client_socket.send(LOGIN_SUCCESSFUL.encode())
                 
                 transport = paramiko.Transport(client_socket)
@@ -56,18 +47,21 @@ class Server(paramiko.ServerInterface):
 
     def run(self):
         print("Starting server on address ", self.host, " and port ", self.port)
-        self.socket.bind((self.host, self.port))
+        self.sock.bind((self.host, self.port))
 
         # Listen for connections
         print("Listening for connections ...")
-        self.socket.listen()
+        transport = paramiko.Transport(self.sock)
+        transport.add_server_key(paramiko.RSAKey(filename="id_rsa"))
+        transport.start_server(server=self)
+
         try:
             while True:
-                client_socket, address = self.socket.accept()
-                print("Received connection from ", address)
+                channel = transport.accept()
+                print("Received connection from ", channel.chanid)
                 client_handler = threading.Thread(
                     target=self.handle_client,
-                    args=(client_socket, address)
+                    args=(channel)
                 )
                 client_handler.start()
                 self.connections.append(client_handler)
