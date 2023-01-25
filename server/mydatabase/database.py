@@ -5,16 +5,17 @@ import hashlib
 class Database:
     def __init__(self, database_name):
         self.db = sqlite3.connect(database_name)
+        self.cursor = self.db.cursor()
 
     def authenticate(self, username, password):
         # Check if user exists
-        self.db.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
-        return self.db.fetchone() is not None
+        self.cursor.execute("SELECT * FROM users WHERE username = ? AND hashed_password = ?", (username, password))
+        return self.cursor.fetchone() is not None
 
     def register(self, username, password):
         # Check if user exists
         self.db.execute("SELECT * FROM users WHERE username = ?", (username,))
-        if self.db.fetchone() is not None:
+        if self.cursor.fetchone() is not None:
             return False
 
         # Hash user password using sha256
