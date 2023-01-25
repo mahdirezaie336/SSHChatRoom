@@ -1,4 +1,5 @@
 import sqlite3
+import hashlib
 
 
 class Database:
@@ -16,8 +17,11 @@ class Database:
         if self.db.fetchone() is not None:
             return False
 
-        # Insert user into database
-        self.db.execute("INSERT INTO users VALUES (?, ?)", (username, password))
+        # Hash user password using sha256
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+        # Insert user into mydatabase
+        self.db.execute("INSERT INTO users VALUES (?, ?)", (username, hashed_password))
         self.db.commit()
         return True
 
