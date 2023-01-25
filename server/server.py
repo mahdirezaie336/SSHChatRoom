@@ -41,7 +41,7 @@ class Server:
 
         # Create transport
         transport = paramiko.Transport(client_socket)
-        transport.add_server_key(paramiko.RSAKey(filename="./server/ssh_keys/id_rsa"))
+        transport.add_server_key(paramiko.RSAKey(filename="./ssh_keys/ssh_host_rsa_key"))
         transport.start_server(server=ssh_server)
 
         # Wait for client to connect

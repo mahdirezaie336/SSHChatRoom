@@ -1,5 +1,7 @@
 import sys
 import socket
+import json
+import hashlib
 
 
 class Client:
@@ -23,9 +25,22 @@ class Client:
 
 
 if __name__ == "__main__":
-    address, port = sys.argv[1], int(sys.argv[2])
-    client = Client(address, port)
+    # Get host and port from command line arguments
+    if len(sys.argv) == 3:
+        host = sys.argv[1]
+        port = int(sys.argv[2])
+    else:
+        host = "localhost"
+        port = 8080
+
+    client = Client(host, port)
     client.connect()
+
+    # Send username and password as json
+    password = hashlib.sha256("pwd".encode()).hexdigest()
+    data = {"username": "mahdirezaie336", "password": password}
+    client.send(json.dumps(data).encode("utf-8"))
+    print(client.receive().decode("utf-8"))
 
     # Get messages from user
     while True:
