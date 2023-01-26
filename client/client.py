@@ -24,7 +24,7 @@ class Client():
         password = getpass.getpass("Password: ")
         self.sock.sendall(self.username.encode())
         self.sock.sendall(password.encode())
-        server_feedback = self.sock.recv(MESSAGE_LENGTH)
+        server_feedback = self.sock.recv(MESSAGE_LENGTH).decode()
         if server_feedback == AUTH_SUCCESSFUL:
             print("Login successful")
         elif server_feedback == AUTH_FAILED:
@@ -53,24 +53,24 @@ class Client():
 
 if __name__ == "__main__":
     
-    address, port = sys.argv[1], int(sys.argv[2])
-    client = Client()
-    client.connect(address, port)
-    client.tunnel()
-    
-    # Get messages from user
-    while True:
-        try:
-            message = input("Enter a message: ")
-            client.send(message.encode())
-            if message == GET_ONLINES:
-                print("Online users:")
-                onlines_count = int(client.receive().decode())
-                client.send(ACK)
-                for i in range(onlines_count):
-                    print(i, ":", client.receive().decode())    
+    try:
+        address, port = sys.argv[1], int(sys.argv[2])
+        client = Client()
+        client.connect(address, port)
+        client.tunnel()
+        
+        # Get messages from user
+        while True:
+                message = input("Enter a message: ")
+                client.send(message.encode())
+                if message == GET_ONLINES:
+                    print("Online users:")
+                    onlines_count = int(client.receive().decode())
                     client.send(ACK)
-            else:
-                print(client.receive().decode())
-        except KeyboardInterrupt:
-            break
+                    for i in range(onlines_count):
+                        print(i, ":", client.receive().decode())    
+                        client.send(ACK)
+                else:
+                    print(client.receive().decode())
+    except KeyboardInterrupt:
+        pass

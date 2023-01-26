@@ -70,11 +70,10 @@ class Server(paramiko.ServerInterface):
 
         try:
             if password != self.users[username]:
-                raise KeyError
+                raise KeyError()
         except KeyError:
             client_socket.sendall(common.AUTH_FAILED.encode())
             client_socket.close()
-            self.online_users.pop(username)
             self.connections.remove(threading.current_thread())
             return
 
@@ -117,7 +116,7 @@ class Server(paramiko.ServerInterface):
                 self.connections.append(client_handler)
         except KeyboardInterrupt:
             print("Shutting down server")
-            self.socket.close()
+            self.sock.close()
 
 
 if __name__ == "__main__":
