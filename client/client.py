@@ -2,10 +2,10 @@ import sys
 import socket
 import getpass
 import paramiko
-from common import MESSAGE_LENGTH
+from common import MESSAGE_LENGTH, AUTH_FAILED, AUTH_SUCCESSFUL, GET_ONLINES, ACK
 
 
-class Client:
+class Client():
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
@@ -13,22 +13,31 @@ class Client:
         self.sock.connect((addr, port))
 
     def tunnel(self) -> None:
+        self.user_authenticate()
         self.transport = paramiko.Transport(self.sock)
         self.transport.start_client()
-        self.authenticate()
+        self.ssh_authenticate()
         self.channel = self.transport.open_session()
 
-    def authenticate(self) -> None:
-        while True:
-            username = input("Username: ")
-            password = getpass.getpass("Password: ")
+    def user_authenticate(self) -> None:
+        self.username = input("Username: ")
+        password = getpass.getpass("Password: ")
+        self.sock.sendall(self.username.encode())
+        self.sock.sendall(password.encode())
+        server_feedback = self.sock.recv(MESSAGE_LENGTH)
+        if server_feedback == AUTH_SUCCESSFUL:
+            print("Login successful")
+        elif server_feedback == AUTH_FAILED:
+            print("Wrong credentials, try again later")
+            sys.exit()
 
-            try:
-                self.transport.auth_password(username, password)
-                print("Login successful")
-                break
-            except paramiko.AuthenticationException:
-                print("Wrong Credentials, try again")
+    def ssh_authenticate(self) -> None:
+        try:
+            self.transport.auth_none(self.username)
+            print("Created ssh tunnel")
+        except paramiko.AuthenticationException:
+            print("Could not create ssh tunnel, try again later")
+            sys.exit()
 
     def send(self, data):
         self.channel.sendall(data)
@@ -51,6 +60,17 @@ if __name__ == "__main__":
     
     # Get messages from user
     while True:
-        message = input("Enter a message: ")
-        client.send(message.encode())
-        print(client.receive().decode())
+        try:
+            message = input("Enter a message: ")
+            client.send(message.encode())
+            if message == GET_ONLINES:
+                print("Online users:")
+                onlines_count = int(client.receive().decode())
+                client.send(ACK)
+                for i in range(onlines_count):
+                    print(i, ":", client.receive().decode())    
+                    client.send(ACK)
+            else:
+                print(client.receive().decode())
+        except KeyboardInterrupt:
+            break
