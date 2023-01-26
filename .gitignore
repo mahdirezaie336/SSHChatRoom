@@ -1,6 +1,8 @@
 server/id_rsa
 server/id_rsa.pub
 client/id_rsa.pub
-server/__pycache__
-client/__pycache__
+server/__pycache__/**
+client/__pycache__/**
 server/users.json
+server/msgs.db
+server/logs.txt
