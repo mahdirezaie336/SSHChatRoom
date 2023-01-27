@@ -1,4 +1,7 @@
-.vscode
-.idea
-**/id_rsa
-**/id_rsa.pub
+server/id_rsa
+server/id_rsa.pub
+client/id_rsa.pub
+**/__pycache__/
+server/users.json
+server/msgs.db
+server/logs.txt

@@ -1,49 +1,85 @@
 import sys
 import socket
+import getpass
+import paramiko
+from common import MESSAGE_LENGTH, AUTH_FAILED, AUTH_SUCCESSFUL, GET_ONLINES, ACK
 import json
 import hashlib
 
 
-class Client:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
+class Client():
+    def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+    def connect(self, addr, port) -> None:
+        self.sock.connect((addr, port))
 
-    def connect(self):
-        self.sock.connect((self.host, self.port))
+    def tunnel(self) -> None:
+        self.user_authenticate()
+        self.transport = paramiko.Transport(self.sock)
+        self.transport.start_client()
+        self.ssh_authenticate()
+        self.channel = self.transport.open_session()
+
+    def user_authenticate(self) -> None:
+        self.username = input("Username: ")
+        password = getpass.getpass("Password: ")
+        self.sock.sendall(self.username.encode())
+        self.sock.sendall(password.encode())
+        server_feedback = self.sock.recv(MESSAGE_LENGTH).decode()
+        if server_feedback == AUTH_SUCCESSFUL:
+            print("Login successful")
+        elif server_feedback == AUTH_FAILED:
+            print("Wrong credentials, try again later")
+            sys.exit()
+
+    def ssh_authenticate(self) -> None:
+        try:
+            self.transport.auth_none(self.username)
+            print("Created ssh tunnel")
+        except paramiko.AuthenticationException:
+            print("Could not create ssh tunnel, try again later")
+            sys.exit()
 
     def send(self, data):
-        self.sock.sendall(data)
+        self.channel.sendall(data)
 
     def receive(self):
-        data = self.sock.recv(1024)
+        data = self.channel.recv(MESSAGE_LENGTH)
         return data
 
     def close(self):
+        self.transport.close()
         self.sock.close()
 
 
 if __name__ == "__main__":
-    # Get host and port from command line arguments
-    if len(sys.argv) == 3:
-        host = sys.argv[1]
-        port = int(sys.argv[2])
-    else:
-        host = "localhost"
-        port = 8080
+    
+    try:
+        if len(sys.argv) == 3:
+            host = sys.argv[1]
+            port = int(sys.argv[2])
+        else:
+            host = "localhost"
+            port = 8080
 
-    client = Client(host, port)
-    client.connect()
+        client = Client()
+        client.connect(address, port)
+        client.tunnel()
+        
+        # Get messages from user
+        while True:
+                message = input("Enter a message: ")
+                client.send(message.encode())
+                if message == GET_ONLINES:
+                    print("Online users:")
+                    onlines_count = int(client.receive().decode())
+                    client.send(ACK)
+                    for i in range(onlines_count):
+                        print(i, ":", client.receive().decode())    
+                        client.send(ACK)
+                else:
+                    print(client.receive().decode())
+    except KeyboardInterrupt:
+        pass
 
-    # Send username and password as json
-    password = hashlib.sha256("pwd".encode()).hexdigest()
-    data = {"username": "mahdirezaie336", "password": password}
-    client.send(json.dumps(data).encode("utf-8"))
-    print(client.receive().decode("utf-8"))
-
-    # Get messages from user
-    while True:
-        message = input("Enter a message: ")
-        client.send(message.encode())
-        print(client.receive().decode())
