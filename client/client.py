@@ -3,6 +3,8 @@ import socket
 import getpass
 import paramiko
 from common import MESSAGE_LENGTH, AUTH_FAILED, AUTH_SUCCESSFUL, GET_ONLINES, ACK
+import json
+import hashlib
 
 
 class Client():
@@ -54,7 +56,13 @@ class Client():
 if __name__ == "__main__":
     
     try:
-        address, port = sys.argv[1], int(sys.argv[2])
+        if len(sys.argv) == 3:
+            host = sys.argv[1]
+            port = int(sys.argv[2])
+        else:
+            host = "localhost"
+            port = 8080
+
         client = Client()
         client.connect(address, port)
         client.tunnel()
@@ -74,3 +82,4 @@ if __name__ == "__main__":
                     print(client.receive().decode())
     except KeyboardInterrupt:
         pass
+

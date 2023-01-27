@@ -6,6 +6,7 @@ from paramiko.common import AUTH_FAILED, AUTH_SUCCESSFUL, OPEN_SUCCEEDED
 import logging
 import db
 import common
+from mydatabase.jsondatabase import JsonDatabase
 
 
 # A server to handle multiple clients in separate threads
@@ -15,6 +16,7 @@ class Server(paramiko.ServerInterface):
         self.host = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.db = JsonDatabase('./mydatabase/users.json')
         self.connections = []
         self.online_users = {}
         
@@ -71,7 +73,6 @@ class Server(paramiko.ServerInterface):
                 channel.sendall("Unknown command".encode())
                 logging.warning(f"Client {username} attempted an unknown command")
 
-
     def check_channel_request(self, kind: str, chanid: int) -> int:
         return OPEN_SUCCEEDED
 
@@ -108,6 +109,9 @@ class Server(paramiko.ServerInterface):
             client_socket.close()
             self.online_users.pop(username)
             self.connections.remove(threading.current_thread())
+
+    def authenticate(self, username, password):
+        return self.db.authenticate(username, password)
 
     def run(self):
         logging.info(f"Starting server on address {self.host}, and port {self.port}")
